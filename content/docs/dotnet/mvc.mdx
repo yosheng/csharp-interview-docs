@@ -2,7 +2,6 @@
 title: ASP.NET MVC
 ---
 
-
 ## MVC中的TempData\ViewBag\ViewData区别?
 
 TempData 保存在Session中，Controller每次执行请求的时候，会从Session中先获取 TempData，而后清除Session，获取完TempData数据，虽然保存在内部字典对象中，但是其集合中的每个条目访问一次后就从字典表中删 除，ViewData存的是Key/Value字典，使用时需要类型转换。
@@ -367,5 +366,4 @@ Server.Execute效果和Server.Transfer类似，但是是把执行的结果嵌入
 - customErrors自定义错误信息设置；
 - authentication身份验证,此节设置应用程序的身份验证策略。
 - authorization授权, 此节设置应用程序的授权策略。
-
 
