@@ -1,0 +1,112 @@
+---
+title: 面向对象
+---
+
+## 题目1
+
+请简述下述程序打印结果，以及原因?
+
+```csharp
+public class ParentClass
+{
+    public ParentClass()
+    {
+        Console.WriteLine("父");
+    }
+    
+    protected static int InitializeStatic(int i)
+    {
+        Console.WriteLine($"父-{i}");
+        return i;
+    }
+}
+
+public class SonClass : ParentClass
+{
+    public static int SonNum = InitializeStatic(10);
+    
+    public SonClass()
+    {
+        Console.WriteLine("子");
+    }
+}
+public static void Action()
+{
+    SonClass son = new SonClass();
+    Console.WriteLine(SonClass.SonNum);
+    SonClass son2 = new SonClass();
+    Console.WriteLine(SonClass.SonNum);
+}
+```
+
+输出结果
+
+```
+父      (第一次实例化,父构造函数)
+子      (第一次实例化,子构造函数)
+父-10   (静态字段首次访问触发初始化)
+10      (输出静态字段值)
+父      (第二次实例化,父构造函数)
+子      (第二次实例化,子构造函数)
+10      (输出静态字段值)
+```
+
+主要考验类的执行顺序：父类，子类，静态块，静态字段，非静态块，非静态字段，构造器，方法
+
+静态字段不是在类首次加载时就初始化，而是在首次访问该静态字段时才进行初始化，这种延迟初始化机制称为"触发式初始化"。
+
+## 题目2
+
+请简述下述程序打印结果，以及原因?
+
+```csharp
+class A
+{
+    public A()
+    {
+        PrintFields();
+    }
+
+    public virtual void PrintFields()
+    {
+    }
+}
+
+class B : A
+{
+    int x = 1;
+    int y;
+
+    public B()
+    {
+        y = -1;
+    }
+
+    public override void PrintFields()
+    {
+        Console.WriteLine("x={0},y={1}", x, y);
+    }
+}
+
+public static void Action()
+{
+    var b = new B();
+}
+```
+
+输出内容
+
+```
+x=1,y=0
+```
+
+1. **构造 `B` 的实例时**：
+   - 首先调用基类 `A` 的构造函数（因为 `B` 继承自 `A`）。
+   - 在 `A` 的构造函数中，执行 `PrintFields()` 方法。
+2. **关键点**：
+   - 此时 `B` 的构造函数尚未执行，因此：
+     - `x` 已初始化为 `1`（字段初始化器 `int x = 1;` 在进入构造函数前执行）。
+     - `y` 尚未被赋值（`y = -1` 在 `B` 的构造函数中），保持默认值 `0`。
+3. **多态行为**：
+   - `PrintFields()` 是虚方法，且 `B` 重写了它，因此调用的是 `B` 的 `PrintFields()` 方法。
+   - 输出 `x=1,y=0`。

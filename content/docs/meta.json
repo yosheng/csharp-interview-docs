@@ -10,6 +10,7 @@
     "dotnet-web",
     "dotnet-client",
     "algorithm",
-    "database"
+    "database",
+    "program"
   ]
 }

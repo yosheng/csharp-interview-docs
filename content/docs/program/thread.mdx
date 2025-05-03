@@ -1,0 +1,69 @@
+---
+title: 多线程
+---
+
+## 题目1
+
+请简述下述程序打印结果，以及原因?
+
+```csharp
+    public void DoSomething(object i)
+    {
+        Thread.Sleep(5000);
+    }
+
+    public async Task DoSomethingAsync(object i)
+    {
+        await Task.Delay(5000).ConfigureAwait(false);
+    }
+
+    public async Task Action()
+    {
+        List<int> numbers = Enumerable.Range(1, 10).ToList();
+        Console.WriteLine($"初始化-{DateTime.Now}");
+        //假设打印的时间是2024-05-01 00：00:00
+        //执行方式1
+        var tasks = numbers.Select(x => DoSomethingAsync(x));
+        await Task.WhenAll(tasks.ToArray()).ConfigureAwait(false);
+        Console.WriteLine($"执行方式1-时间大约是？{DateTime.Now}");
+        //执行方式2
+        Parallel.ForEach(numbers, x => DoSomething(x));
+        Console.WriteLine($"执行方式2-时间大约是？{DateTime.Now}");
+        //执行方式3
+        numbers.ForEach(x => new Thread(DoSomething).Start());
+        Console.WriteLine($"执行方式3-时间大约是？{DateTime.Now}");
+    }
+```
+输出
+
+```
+初始化-2024/05/01 00：00:00
+执行方式1-时间大约是？2024/05/01 00：00:05
+执行方式2-时间大约是？2024/05/01 00：00:10
+执行方式3-时间大约是？2024/05/01 00：00:10
+```
+
+- 执行方式1: Select + Task.WhenAll (基于 async/await)
+  - `var tasks = numbers.Select(x => DoSomethingAsync(x));`Select 是 LINQ 的延迟执行方法。这一行**不会**立即执行 DoSomethingAsync。它只是创建了一个 `IEnumerable<Task>`，描述了要执行的任务。
+  - `tasks.ToArray()` 为了传递给 Task.WhenAll，需要将` IEnumerable<Task> `转换为数组。在转换过程中，会遍历 Select 的结果，此时**才会真正调用** DoSomethingAsync(x) 10 次。
+  - `DoSomethingAsync(x) `这个方法是异步的。它调用 `await Task.Delay(5000).ConfigureAwait(false);`。Task.Delay 返回一个表示延迟的任务，await 会（通常）立即将控制权交还给调用者（即 ToArray() 的迭代逻辑），同时安排 5 秒后继续执行。`ConfigureAwait(false)` 避免了捕获同步上下文，这在这里影响不大，但通常是库代码的好习惯。
+  - 调用 10 次 DoSomethingAsync 会非常快地启动 10 个独立的 5 秒延迟任务。这些任务几乎是同时开始的，并且它们是**并发运行**的（不阻塞主线程，等待 I/O 完成端口或计时器）。
+  - `await Task.WhenAll(tasks.ToArray()).ConfigureAwait(false);` Task.WhenAll 会异步地等待**所有**传递给它的任务完成。由于这 10 个任务是并发运行的，并且每个都需要大约 5 秒，Task.WhenAll 将在大约 5 秒后完成（取决于最慢的那个任务）
+  - **时间预测:** 从 00:00:00 开始，启动任务非常快，等待所有并发任务完成大约需要 5 秒。所以时间戳大约是 **2024-05-01 00:00:05**。
+- 执行方式2: Parallel.ForEach (基于 TPL)
+  - `Parallel.ForEach(numbers, x => DoSomething(x));` Task Parallel Library (TPL) 的 Parallel.ForEach 会尝试在多个线程上并行执行 DoSomething(x)。
+  - Parallel.ForEach 会阻塞调用它的线程（这里是 Action 方法的主流程，在 await Task.WhenAll 之后），直到所有并行操作完成。TPL 会根据可用的 CPU 核心数量来决定同时运行多少个 DoSomething(x)
+  - 假设系统有 N 个核心可供 TPL 使用。它会同时启动 N 个 DoSomething 调用。每 5 秒钟，这 N 个调用完成，TPL 再启动下一批。总共需要执行 10 次，所以大约需要 `Ceiling(10.0 / N) *` 5 秒。
+  - **时间戳预测:** 从方式 1 结束的 00:00:05 开始，再经过大约 5-10 秒。所以时间戳大约是 **2024-05-01 00:00:10 到 00:00:15**。（我们取 10 秒的执行时间作为例子，即 00:00:10）。
+- 执行方式3: ForEach + new Thread().Start()
+  - `numbers.ForEach(x => new Thread(DoSomething).Start());` 使用` List<T>.ForEach` 遍历列表。对于每个元素：
+    - new Thread(DoSomething): 创建一个新的线程对象，指定它要执行 DoSomething 方法。
+    - .Start(): 启动这个新线程。Start() 方法**立即返回**，不会等待新线程执行完毕。
+  - 这个循环会非常快速地创建并启动 10 个新线程。主线程（执行 Action 方法的线程）在启动完所有线程后**不会等待**它们完成，而是立即继续执行下一行代码。这 10 个新线程会在后台各自独立地执行 DoSomething（即阻塞自己 5 秒）
+  - **时间戳预测:** 从方式 2 结束的时间（约 00:00:15）开始，创建和启动 10 个线程非常快（可能只需几毫秒）。因此，这个时间戳将非常接近方式 2 的结束时间。大约是 **2024-05-01 00:00:10**。
+
+**总结:**
+
+- **方式 1 (async/await):** 高效利用异步 I/O（或计时器），任务并发执行不阻塞线程，总时间约等于单个最长任务时间（5s）。
+- **方式 2 (Parallel.ForEach):** 利用多核并行执行阻塞任务，总时间取决于核心数和任务总数，阻塞调用者直到全部完成（~10-25s，取决于核心）。
+- **方式 3 (new Thread):** 快速启动多个独立线程（“发射后不管”），不阻塞调用者，打印时间戳时后台线程仍在运行，时间戳只反映启动完成时间（几乎立即）。

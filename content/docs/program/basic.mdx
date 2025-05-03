@@ -1,0 +1,113 @@
+---
+title: 基础
+---
+
+## 
+
+## 题目1
+
+请简述下述程序打印结果，以及原因?
+
+```csharp
+    public static void Action()
+    {
+        int year = 20;
+        var user = new User()
+        {
+            Name = "John",
+            Age = 26
+        };
+        
+        UpdateValue(year, user);
+        
+        Console.WriteLine(year);
+        Console.WriteLine(user.Name);
+        Console.WriteLine(user.Age);
+    }
+
+    public static void UpdateValue(int year, User user)
+    {
+        year = 24;
+        user.Name = "Jane";
+        user.Age = 27;
+    }
+```
+
+结果如下
+```
+20      // year 的值
+Jane    // user.Name 的值
+27      // user.Age 的值
+```
+
+ **1. `year` 的值未改变（输出 `20`）**
+
+  - **传递方式**：`int` 是**值类型**，参数通过**值传递**（复制一份数据到方法内）。
+  - **行为**：
+  - `UpdateValue` 方法内修改的是 `year` 的**副本**，不影响外部的原始变量。
+  - 方法调用结束后，外部的 `year` 仍为 `20`。
+
+ **2. `user.Name` 和 `user.Age` 被修改（输出 `Jane` 和 `27`）**
+
+- **传递方式**：`User` 是**引用类型**，参数通过**引用传递（传递引用的副本）**。
+- **行为**：
+  - `UpdateValue` 方法内通过引用的副本**修改了堆上的对象属性**。
+  - 外部的 `user` 和方法的 `user` 参数**指向同一个堆对象**，因此属性变更对外部可见。
+
+## 题目2
+
+请简述下述程序打印结果，以及原因?
+
+```cs
+    public static void Action()
+    {
+        Console.WriteLine(CalcResult(0));
+        Console.WriteLine(CalcResult(1));
+    }
+    
+    public static int CalcResult(int num)
+    {
+        try
+        {
+            num = 10 / num;
+            return num;
+        }
+        catch (Exception e)
+        {
+            num++;
+            Console.WriteLine($"Fn-{num}");
+            return num;
+        }
+        finally
+        {
+            num++;
+            Console.WriteLine($"Fn-{num}");
+        }
+    }
+```
+
+结果如下
+
+```
+Fn-1
+Fn-2
+1
+Fn-11
+10
+```
+
+1. 当 num = 0 时:
+   - 10/0 会抛出除零异常
+   - catch块执行: num++ 使 num=1,打印"Fn-1"
+   - finally块执行: num++ 使 num=2,打印"Fn-2"
+   - 返回catch块的值1(catch中的return值)
+
+1. 当 num = 1 时:
+   - 10/1 = 10,正常执行
+   - finally块执行: num++ 使 num=11,打印"Fn-11"
+   - 返回try块的值10(try中的return值)
+
+需要注意:
+- finally块总是会执行
+- return值取决于是从try还是catch块返回,finally中的num++不影响返回值
+
