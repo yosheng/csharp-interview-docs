@@ -1,0 +1,8 @@
+{
+    "title": ".NET 应用开发",
+    "pages": [
+        "winform",
+        "wpf"
+    ],
+    "defaultOpen": true
+}
