@@ -4,7 +4,8 @@
         "collection",
         "generics",
         "delegate",
-        "reflection"
+        "reflection",
+        "linq"
     ],
     "defaultOpen": true
 }

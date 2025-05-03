@@ -1,0 +1,37 @@
+---
+title: LINQ
+---
+
+## 延迟执行 (Lazy Loading)是什么？
+
+大部分LINQ语句是在最终结果的第一个元素被访问的时候（即在foreach中调用MoveNext方法）才真正开始运算的，这个特点称为延迟执行。一般来说，返回另外一个序列（通常为IEnumerable或IQueryable）的操作，使用延迟执行，而返回单一值的运算，使用立即执行。
+
+IEnumerable是延迟执行的，当没有触发执行时，就不会进行任何运算。Select方法不会触发LINQ的执行。一些触发的方式是：foreach循环，ToList，ToArray，ToDictionary方法等
+
+## LINQ可视化工具简单介绍一下？
+
+LINQPad工具是一个很好的LINQ查询可视化工具。它由Threading in C#和C# in a Nutshell的作者Albahari编写，完全免费。它的下载地址是http://www.linqpad.net/
+
+进入界面后，LINQPad可以连接到已经存在的数据库（不过就仅限微软的SQL Server系，如果要连接到其他类型的数据库则需要安装插件）。某种程度上可以代替SQL Management Studio，是使用SQL Management Studio作为数据库管理软件的码农的强力工具，可以用于调试和性能优化（通过改善编译后的SQL规模）。
+
+LINQPad支持使用SQL或C#语句（点标记或查询表达式）进行查询。你也可以通过点击橙色圈内的各种不同格式，看到查询表达式的各种不同表达方式：
+
+- Lambda：查询表达式的Lambda表达式版本，
+- SQL：由编译器转化成的SQL，通常这是我们最关心的部分，
+- IL：IL语言
+
+## LINQ to Object和LINQ to SQL有何区别？
+
+LINQ to SQL可以将查询表达式转换为SQL语句，然后在数据库中执行。相比LINQ to Object，则是将查询表达式直接转化为Enumerable的一系列方法，最终在C#内部执行。LINQ to Object的数据源总是实现IEnumerable（所以不如叫做LINQ to IEnumerable），相对的，LINQ to SQL的数据源总是实现IQueryable并使用Queryable的扩展方法。
+
+将查询表达式转换为SQL语句并不保证一定可以成功。
+
+## 如何提高LINQ性能问题？
+
+提升从数据库中拿数据的速度，可以参考以下几种方法：
+
+1. 在数据库中的表中定义合适的索引和键
+2. 只获得你需要的列（使用ViewModel或者改进你的查询）和行（使用IQueryable）
+3. 尽可能使用一条查询而不是多条
+4. 只为了展示数据，而不进行后续修改时，可以使用AsNoTracking。它不会影响生成的SQL，但它可以令系统少维护很多数据，从而提高性能
+5. 使用Reshaper等工具，它可能会在你写出较差的代码时给出提醒
