@@ -294,3 +294,85 @@ static async Task ThrowExceptionAsync()
 - 同步调用 (HandleError) 一个返回 Task 的异步方法而不 await 它，会导致该方法的 try-catch 无法捕获异步操作中（await 之后）发生的异常。该异常会变成未处理的 Task 异常，通常导致程序崩溃。
 - 异步调用 (HandleErrorAsync) 使用 await 等待 Task，可以将异步操作中发生的异常传播回 await 点，从而允许外层的 try-catch 块捕获该异常。
 - 主线程的 "启动" 和 "完成" 消息会快速连续打印，因为异步调用不会阻塞主线程。实际的延迟和异常处理发生在后台。
+
+## 题目6
+
+请简述下述程序打印结果，以及原因?
+
+```csharp
+public static void Action()
+{
+    Console.WriteLine($"{DateTime.Now}开始.....{Thread.CurrentThread.ManagedThreadId}");
+    Task t1 = Task.Run(() => DoWork(1));
+    Task t2 = Task.Run(() => DoWork(2));
+    Task t3 = Task.Run(() => DoWork(3));
+    Task t4 = Task.Run(() => DoWork(4));
+
+    Task.WaitAll(t1, t2, t3, t4);
+    Console.WriteLine($"{DateTime.Now}结束.....{Thread.CurrentThread.ManagedThreadId}");
+}
+
+static void DoWork(int id)
+{
+    _semaphore.Wait();
+
+    try
+    {
+        Console.WriteLine($"{DateTime.Now}启动任务{id}.....{Thread.CurrentThread.ManagedThreadId}");
+        Thread.Sleep(2000);
+    }
+    finally
+    {
+        _semaphore.Release();
+    }
+}
+```
+
+输出
+
+```
+[时间 T0] 开始.....1 // (假设主线程 ID 是 1)
+// --- 几乎同时 ---
+[时间 T0 + ε] 启动任务[ID A].....[线程池线程 ID X] // (ID A 是 1, 2, 3, 4 中的一个)
+[时间 T0 + ε] 启动任务[ID B].....[线程池线程 ID Y] // (ID B 是 1, 2, 3, 4 中不同于 A 的一个)
+// --- 大约 2 秒后 ---
+[时间 T0 + 2s] 启动任务[ID C].....[线程池线程 ID Z] // (ID C 是剩余两个 ID 中的一个)
+[时间 T0 + 2s] 启动任务[ID D].....[线程池线程 ID W] // (ID D 是最后一个 ID)
+// --- 再大约 2 秒后 (总共约 4 秒后) ---
+[时间 T0 + 4s] 结束.....1
+```
+
+- SemaphoreSlim(2) 限制了同时能进入 try 块（即执行 2 秒 Sleep）的任务数量为 2 个。
+- 4 个任务并发启动，但只有 2 个能立即开始工作，另外 2 个必须等待。
+- 任务分成了两批执行，每批执行时间大约 2 秒。
+- Task.WaitAll 阻塞了主线程，直到所有 4 个任务（包括等待和执行的时间）都完成。
+- 因此，总耗时大约是 2 批 * 2 秒/批 = 4 秒。
+
+## 题目7
+
+请简述下述程序打印结果，以及原因?
+
+```csharp
+public void Action()
+{
+    int a = 0;
+    Parallel.For(0, 100000, (i) =>
+    {
+        a++;
+    });
+    Console.WriteLine($"总数{a}.....{Thread.CurrentThread.ManagedThreadId}");
+}
+```
+
+输出
+
+```
+总数[一个小于100000的数字].....1 // (假设主线程 ID 是 1)
+```
+
+- 在 100,000 次迭代中，这种竞争条件会发生很多次。每次发生，都会导致一次或多次递增操作的丢失。
+- 因此，当 Parallel.For 完成时（它会阻塞主线程直到所有迭代完成），a 的最终值将小于 100,000。
+- 具体丢失多少次递增取决于线程调度的具体时机、CPU 核心数量等因素，因此结果是**非确定性的**。
+- 使用线程安全方式有两种
+  - `Interlocked.Increment(ref a)` 这是最高效、最推荐的方式，它能原子性地完成递增操作。
+  - `lock` 语句  使用锁来保护对 a 的访问，确保同一时间只有一个线程能执行 a++。
