@@ -3,6 +3,10 @@ title: 多线程与异步
 index: true
 ---
 
+
+
+部份内容参考自：[https://www.cnblogs.com/anding/p/5301754.html](https://www.cnblogs.com/anding/p/5301754.html)
+
 ## 根据线程安全的相关知识，分析以下代码，当调用test方法时i>10时是否会引起死锁?并简要说明理由。
 
 ```csharp
@@ -198,6 +202,24 @@ public static class Singleton<T> where T : class,new()
     }
 }
 ```
+
+### 下面的代码，调用方法DeadLockTest（20），是否会引起死锁？并说明理由。
+
+```csharp
+public void DeadLockTest(int i)
+{
+    lock (this)   //或者lock一个静态object变量
+    {
+        if (i > 10)
+        {
+            Console.WriteLine(i--);
+            DeadLockTest(i);
+        }
+    }
+}
+```
+
+不会的，因为lock是一个混合锁，支持锁的递归调用，如果你使用一个ManualResetEvent或AutoResetEvent可能就会发生死锁。
 
 ## Thread 类有哪些常用的属性和方法？
 
