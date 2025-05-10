@@ -236,3 +236,83 @@ John@cc.com
 ```
 
 关键在于理解 C# 泛型类的静态成员特性：**每个具体的泛型类型实例化（如 `Caching<string>` 和 `Caching<int>`）拥有自己独立的静态成员副本**。因此，names 和 emails 共享一个字典，而 ages 使用另一个完全不同的字典，导致了最终的输出结果。
+
+## 题目5
+
+请简述下述程序打印结果，以及原因?
+
+```csharp
+delegate double MyDelegate(int num);
+
+public static void Exec()
+{
+    var myDelegate = new MyDelegate(Run1);
+    myDelegate += Run2;
+    Console.WriteLine($"结果: {myDelegate(100)}");
+}
+
+static double Run1(int num)
+{
+    var result = num * 0.1; 
+    Console.WriteLine($"Run1-{result}");
+    return result;
+}
+
+static double Run2(int num)
+{
+    var result = num * 0.2;
+    Console.WriteLine($"Run1-{result}");
+    return result;
+}
+```
+
+输出
+
+```
+Run1-10
+Run1-20
+结果: 20
+```
+
+多播委托会按照方法添加的顺序依次执行所有绑定的方法。每个方法都会执行其内部的逻辑（包括 Console.WriteLine）。但是，整个委托调用的返回值仅仅是最后一个被调用的方法的返回值。
+
+## 题目6
+
+请简述下述程序打印结果，以及原因?
+
+```csharp
+public static void Action()
+{
+    var person = new Person()
+    {
+        Name = "John",
+        Age = 1
+    };
+
+    var actions = new List<Action>();
+
+    for (int i = 0; i < 3; i++)
+    {
+        actions.Add(() =>
+        {
+            person.Age = person.Age * i;
+            Console.WriteLine($"age: {person.Age}");
+        });
+    }
+    
+    foreach (var action in actions)
+    {
+        action.Invoke();
+    }
+}
+```
+
+输出
+
+```
+age: 3
+age: 9
+age: 27
+```
+
+所有添加到 actions 列表中的 Lambda 表达式在执行时，都会使用循环变量 i 的最终值（即 3），并且它们都会操作同一个 person 对象的 Age 属性，导致 Age 的值在前一次计算的基础上进行累积性的乘法。
