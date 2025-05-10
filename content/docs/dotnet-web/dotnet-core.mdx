@@ -276,6 +276,31 @@ Startup class是dotnet core应用的入口。所有的dotnet core应用必须有
 
 这个方法来定义整个应用如何响应HTTP请求。它有几个比较重要的参数，application builder，Hosting environment, logo factory， 在这里我们可以配置一些中间件用来处理路径，验证和session等等。
 
+## 描述一下管道模式，以及在.net core 中的使用
+
+请求管道描述的是一个请求进到我们的后端应用，后端应用如何处理的过程，从接收到请求，之后请求怎么流转，经过哪些处理，最后怎么返回响应。请求管道就是一次请求在后端应用的生命周期。了解请求管道，有助于我们明白后端应用是怎么工作的，我们的代码是怎么工作的，在我们的业务代码执行前后经过哪些步骤，有助于我们之后更好的实现一些AOP操作。
+
+当一个http请求被送入到HttpRuntime之后，这个Http请求会继续被送入到一个被称之为HttpApplication Factory的一个容器当中，而这个容器会给出一个HttpApplication实例来处理传递进来的http请求，而后这个Http请求会依次进入到如下几个容器中：HttpModule --> HttpHandler Factory --> HttpHandler。当系统内部的HttpHandler的ProcessRequest方法处理完毕之后，整个Http Request就被处理完成
+
+```csharp
+public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+{
+    if (env.IsDevelopment())
+    {
+        // 中间件
+        app.UseDeveloperExceptionPage();
+    }
+    app.UseRouting();
+
+    app.UseAuthorization();
+
+    app.UseEndpoints(endpoints =>
+    {
+        endpoints.MapControllers();
+    });
+}
+```
+
 ## 什么是中间件（Middleware）？
 
 中间件是组装到应用程序管道中以处理请求和响应的软件。 每个组件：
