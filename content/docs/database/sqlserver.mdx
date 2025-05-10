@@ -3,7 +3,26 @@ title: SqlServer
 index: true
 ---
 
-下述内容出自：[https://www.cnblogs.com/xiaomandujia/p/17910951.html](https://www.cnblogs.com/xiaomandujia/p/17910951.html)
+下述内容出自：
+
+- [https://www.cnblogs.com/xiaomandujia/p/17910951.html](https://www.cnblogs.com/xiaomandujia/p/17910951.html)
+- [https://www.cnblogs.com/SunSpring/p/16308812.html](https://www.cnblogs.com/SunSpring/p/16308812.html)
+
+## SqlServer中的索引?
+
+可以把索引理解为一种特殊的目录。微软的SQL SERVER提供了两种索引：聚集索引（clustered index，也称聚类索引、簇集索引）和非聚集索引（nonclustered index，也称非聚类索引、非簇集索引）。
+
+- 聚集索引图
+
+![image.png](./images/20e7aea87d0f4e74bb682129d5b662bbtplv-k3u1fbpfcp-watermark.png)
+
+​	叶子节点就是真实的数据节点
+
+- 非集聚索引图
+
+  ![image.png](./images/1d01fd22a2f340f7be4381193d04949ftplv-k3u1fbpfcp-watermark.png)
+
+  叶子节点也是数据节点，该节点存储的是真实数据的内存地址。
 
 ## 请简述Sql Server中的分布式查询的功能和用法？
 
