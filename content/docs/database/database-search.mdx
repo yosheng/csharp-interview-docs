@@ -80,7 +80,11 @@ insert into tableb values('2005-05-10','负');
 答案：
 
 ```sql
-select rq, sum(case when shengfu='胜' then 1 else 0 end)'胜',sum(case whenshengfu='负' then 1 else 0 end)'负' from tableb group by rq
+select rq, 
+       sum(case when shengfu='胜' then 1 else 0 end)'胜', 
+       sum(case when shengfu='负' then 1 else 0 end)'负'
+from tableb
+group by rq;
 ```
 
 ## 用一条sql 语句显示所有可能的比赛组合
@@ -299,13 +303,21 @@ GROUP BY QUARTER(`adddate`),YEAR(`adddate`)
 不知道是不是考察：order by和group by共用的问题。order by 必须放在group by 后面
 
 ```sql
-SELECT id AS `no`,sales,SUM(`money`) AS money FROM a WHERE YEAR(`adddate`) = '2013' GROUP BY sales ORDER BY money DESC LIMIT 5
+SELECT id AS `no`, sales,
+       SUM(` money `) AS money
+FROM a
+WHERE YEAR(` adddate `) = '2013'
+GROUP BY sales
+ORDER BY money DESC
+LIMIT 5
 ```
 
 ### 请用SQL语句统计出哪个产品线的销售金额最多?
 
 ```sql
-SELECT c.`type`,MAX(tab.tt) FROM (SELECT pid,SUM(price*number) AS tt FROM b GROUP BY pid) AS tab LEFT JOIN c ON tab.pid = c.`id`
+SELECT c.`type`,MAX(tab.tt)
+FROM (SELECT pid, SUM(price*number) AS tt FROM b GROUP BY pid) AS tab LEFT JOIN c
+ON tab.pid = c.` id `
 ```
 
 ## 关於部门表及员工表面试题
