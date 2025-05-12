@@ -62,3 +62,48 @@ SaveChanges是以Context为维度的一次提交，对于数据库操作的一�
 ## 说说什么是导航属性和引用属性
 
 实体框架 中的导航属性提供了一种在两个实体类型之间导航关联的方法。导航属性在概念模型中由 NavigationProperty 元素 (CSDL) 定义。针对对象参与到其中的每个关系，各对象均可以具有导航属性。使用导航属性，您可以在两个方向上导航和管理关系，如果重数为一或者零或一，则返回EntityReference，或者如果重数为多个，则返回 EntityCollection。也可以选择单向导航，这种情况下可以删除导航属性。
+
+## efcore事务的几种方法？
+
+1. 默认事务(SaveChanges)
+
+   默认情况下，如果数据库提供程序支持事务，单个 SaveChanges() 调用中的所有变更都会在一个事务中被提交。如果其中任何一个变更失败了， 那么事务就会回滚，没有任何变更会被应用到数据库。这意味着 SaveChanges() 能够确保要么成功保存，要么在发生错误时不对数据库做任何修改。
+
+   关闭默认事务：`context.Database.AutoTransactionsEnabled = false;`
+
+2. DbContextTransaction
+
+   **使用方式**
+
+   BeginTransaction开启事务、Commit提交事务、Rollback回滚事务、Dispose销毁，如果用Using包裹的话，不再需要手动Rollback，走完Using会自动回滚。如果不用Using包裹事务，就需要在Catch中手动RollBack回滚，并且最好最后手动的Dispose一下。(如SameDbContext文件夹中的Test1和Test2方法)
+
+   **使用场景**
+
+   同一个上下文多个SaveChanges的方法（如：自增主键后续要用到）、SaveChanges和EF调用SQL语句混用
+
+3. 环境事务 TransactionScope
+
+   使用方式
+
+   new TransactionScope创建事务、Complete提交事务、 Transaction.Current.Rollback();回滚事务、Dispose销毁对象。如果用Using包裹的话，不再需要手动Rollback，走完Using会自动回滚。如果不用Using包裹事务，就需要在Catch中手动RollBack回滚，并且最好最后手动的Dispose一下。TransactionScope有三个属性：IsolationLevel（隔离等级），Timeout（超时），TransactionScopeOption（选项）
+
+   用途
+
+   - A. 同一个上下文的事务。(多个SaveChanges(自增主键后续用到的情况)、SaveChanges和EF调用SQL语句混用)（如Test1方法)
+   - B. 多种数据库技术访问同一个数据库的事务 （如Test2方法)
+   - C. 同一个数据库多个不同的上下文是支持的（如Test3方法）
+   - D. 不同数据库的上下文是不支持的，(如Test4方法,开启msdtc服务的步骤： cmd命令→ net start msdtc ，然后发现报错：This platform does not support distributed transactions.说明目前Core平台下不支持分布式事务）
+
+## 使用EF update 怎么保证在并发时数据正确？
+
+1、RowVersion ( TimeStamp ) 时间戳
+
+EF实现Rowversion 并发控制 需要借助 TimeStamp 标示 ，并且一个类只能有 一个此标示，标示的必须是byte[]类型。使用Rowversion会对整行数据进行并发检测。
+
+2、 ConcurrencyCheck
+
+有些时候并不需要控制针对整条记录的并发，只需要控制某个列的数据不会出现脏操作就ok，这个时候 就使用ConcurrencyCheck 。你必须将ConcurrencyCheck特性添加到实体需要控制并发的非主键属性上，使实体框架可以将所有标记的列包含到更新语句的Where子句中。
+
+3、 DbUpdateConcurrencyException
+
+您可以通过EF实体框架引发的DbUpdateConcurrencyException异常处理来解决冲突。
