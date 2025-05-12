@@ -55,7 +55,7 @@ message HelloRequest {
 
 3. 配置客户端的项目文件,如下。请注意 GrpcServices=“Client”
 
-   ```csproj
+   ```
    <ItemGroup>
      <Protobuf Include="Protos\greet.proto" GrpcServices="Client" />
      <Protobuf Include="Protos\CustomMath.proto" GrpcServices="Client" />
@@ -64,7 +64,7 @@ message HelloRequest {
 
 4. 编译后，编写调用gRPC的方法如下：
 
-   ```csharp
+   ```
    private static async Task TestHello()
    {
            using(var channel = GrpcChannel.ForAddress("https://localhost:5001"))

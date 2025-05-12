@@ -35,6 +35,30 @@ try {
 }
 ```
 
+## 创建下面对象实例，需要申请多少内存空间？
+
+```csharp
+public class User
+{
+    public int Age { get; set; }
+    public string Name { get; set; }
+    public string _Name = "123" + "abc";
+    public List<string> _Names;
+}
+```
+
+- 对象大小估算，共计40个字节
+  - 属性Age值类型Int，4字节；
+  - 属性Name，引用类型，初始为NULL，4个字节，指向空地址；
+  - 字段_Name初始赋值了，由前面的文章（[.NET面试题解析(03)-string与字符串操作](http://www.cnblogs.com/anding/p/5240313.html)）可知，代码会被编译器优化为_Name=”123abc”。一个字符两个字节，字符串占用2×6+8（附加成员：4字节TypeHandle地址，4字节同步索引块）=20字节，总共内存大小=字符串对象20字节+_Name指向字符串的内存地址4字节=24字节；
+  - 引用类型字段List<string> _Names初始默认为NULL，4个字节；
+  - User对象的初始附加成员（4字节TypeHandle地址，4字节同步索引块）8个字节；
+- **内存申请**： 申请44个字节的内存块，从指针NextObjPtr开始验证，空间是否足够，若不够则触发垃圾回收。
+- **内存分配**： 从指针NextObjPtr处开始划分44个字节内存块。
+- **对象初始化**： 首先初始化对象附加成员，再调用User对象的构造函数，对成员初始化，值类型默认初始为0，引用类型默认初始化为NULL；
+- **托管堆指针后移**： 指针NextObjPtr后移44个字节。
+- **返回内存地址**： 返回对象的内存地址给引用变量。
+
 ## CTS、CLS、CLR分别作何解释？
 
 CTS：通用语言系统。CLS：通用语言规范。CLR：公共语言运行库。
@@ -56,6 +80,22 @@ unsafe：非托管代码。不经过CLR运行。
 ## GC垃圾回收?
 
 GC是垃圾回收（Garbage Collect）的缩写，是.NET核心机制的重要部分。它的基本工作原理就是遍历托管堆中的对象，标记哪些被使用对象（那些没人使用的就是所谓的垃圾），然后把可达对象转移到一个连续的地址空间（也叫压缩），其余的所有没用的对象内存被回收掉。
+
+首先，需要再次强调一下托管堆内存的结构，如下图，很明确的表明了，只有GC堆才是GC的管辖区域，关于加载堆在前面文中有提到过（[.NET面试题解析(04)-类型、方法与继承](http://www.cnblogs.com/anding/p/5248973.html)）。GC堆里面为了提高内存管理效率等因素，有分成多个部分，其中 两个主要部分：
+
+- 0/1/2代：代龄（Generation）在后面有专门说到；
+- 大对象堆(Large Object Heap)，大于85000字节的大对象会分配到这个区域，这个区域的主要特点就是：不会轻易被回收；就是回收了也不会被压缩（因为对象太大，移动复制的成本太高了）；
+
+<Mermaid chart="
+graph TD
+    A[垃圾回收堆 GC Heap] --> B[托管堆 Managed Heap]
+    A --> C[加载堆 Loader Heap]
+    A --> D[大对象堆 Large Object Heap]
+
+    B --> B0[0代 Generation 0]
+    B --> B1[1代 Generation 1]
+    B --> B2[2代 Generation 2]
+"/>
 
 ## 解释一下一个引用对象在GC的生命周期？
 
@@ -204,13 +244,13 @@ C#在Unsafe 模式下可以使用指针对内存进行操作, 但在托管模式
    {
    	// Unsafe context: can use pointers here.
    }
-```
+	```
 
    不安全上下文的范围从参数列表扩展到方法的结尾，因此指针在以下参数列表中也可以使用：
 
    ```csharp
    unsafe static void FastCopy ( byte* ps, byte* pd, int count ) {...}
-```
+	```
 
    还可以使用不安全块从而能够使用该块内的不安全代码。例如：
 
