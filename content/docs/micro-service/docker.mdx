@@ -1,0 +1,125 @@
+---
+title: Docker
+---
+
+引述自：
+
+- [Docker 面试题 100 道](https://zhuanlan.zhihu.com/p/670696402)
+- [Docker面试题总结（配答案）](https://www.nowcoder.com/discuss/352905402784264192)
+
+## 什么是Docker？
+
+Docker是一个开源的容器化平台，它允许开发者将应用及其依赖打包到一个轻量级、可移植的容器中，从而在任何Docker运行的环境中实现一致的运行。
+
+## Docker容器和虚拟机的区别是什么？
+
+Docker容器在操作系统级别进行虚拟化，共享宿主机的内核，而虚拟机在硬件级别进行虚拟化，拥有独立的内核。容器通常更轻量级、启动更快，资源占用更少。
+
+## 什么是Docker镜像？
+
+Docker镜像是一个轻量级、只读的模板，用于创建Docker容器。它包含运行容器所需的代码、库、环境变量和配置文件。
+
+## Docker的默认网络模式有哪些？
+
+1. **Host模式**：在此模式下，容器将直接加入主机的网络栈，与主机共享网络资源。容器将直接使用主机的网络接口和IP地址。这种模式适用于需要容器与主机共享网络资源或容器需要快速访问主机网络服务的场景。这种模式下的安全性较低，因为容器和主机之间的隔离程度较低。
+2. **Bridge模式**：这是Docker的默认网络模式。它使用一个Docker内置的网桥（如Docker0）作为容器的网络接口。容器之间互相隔离，但可以通过网络互相通信。Bridge模式为每个容器分配Network Namespace子系统，并自动为每个容器虚拟出自己的网卡、IP、网关、路由等信息。因为Bridge模式会为每个容器分配一个虚拟的IP地址，并将其连接到Docker内部的虚拟网桥上，但外部网络并不知道这个内部虚拟IP地址的存在，所以无法直接访问外网
+3. **Container模式**：在此模式下，多个容器共享同一个网络命名空间。这意味着这些容器可以使用相同的IP地址和端口，它们可以直接通过本地主机名相互通信，就像它们在同一个主机上一样。
+4. **None模式**：在None模式下，容器没有任何网络接口，也无法与外部网络或其他容器通信。这适用于需要完全隔离的场景。容器之间互相隔离，需要进行端口映射才能访问。
+
+此外，Docker还支持**自定义网络模式**，允许用户创建和管理自己的网络。
+
+```bash
+docker network create my_network
+docker run --network=my_network -tid -p 8000:8000 image_name
+```
+
+host模式可以直接访问外网
+
+bridge模式需要可以通过配置端口映射来访问外部网络。否则不能访问外网
+
+Container模式和none模式不能访问外网
+
+## Docker容器间通信是如何工作的？
+
+容器可以通过Docker网络进行通信。在同一网络中的容器可以使用容器名称互相解析，实现容器间通信。
+
+## 有什么常用的 Docker 命令？
+
+```shell
+docker pull 拉取镜像
+docker create 创建容器
+docker rm 删除容器
+docker ps 列出正在运行的容器列表
+docker run 创建容器并运行指定命令
+docker start 启动容器
+docker stop 停止运行容器
+docker restart 重启容器
+docker rm 删除容器
+docker exec 容器执行指定命令
+docker rmi 删除镜像
+```
+
+## 什么是Docker卷（Volume）？
+
+Docker卷是一种持久化存储数据的机制。它独立于容器的生命周期存在，可以用来存储容器的数据。
+
+## 如何创建和使用Docker卷？
+
+可以使用docker volume create命令创建卷。使用卷的一个常见场景是在docker run命令中通过-v选项将卷挂载到容器内部。
+
+## 什麽是 docker compose？
+
+Compose 是用于定义和运行多个docker容器 的工具。通过 Compose，您可以使用 YML 文件(通常命名为 docker-compose.yml)来配置应用程序需要的所有服务。然后，使用一个命令，就可以从 YML 文件配置中创建并启动所有服务。
+
+```yaml
+version: '3'  # Docker Compose 文件的版本
+services:  # 定义应用的服务
+  web:  # 服务名称
+    build: .  # 构建服务的 Dockerfile 所在的路径
+    ports:  # 端口映射
+     - "5000:5000"  # 宿主机端口:容器端口
+  redis:  # 另一个服务名称
+    image: "redis:alpine"  # 使用的 Docker 镜像
+```
+
+Compose 使用的三个步骤
+
+- 使用 Dockerfile 定义应用程序的环境。
+- 使用 docker-compose.yml 定义构成应用程序的服务，这样它们可以在隔离环境中一起运行。
+- 最后，执行 docker-compose up 命令来启动并运行整个应用程序。
+
+Docker Compose 的主要命令包括：
+
+```shell
+docker-compose up #启动并运行你的应用
+docker-compose down #停止并移除你的应用
+docker-compose build #构建或重新构建服务
+docker-compose ps #列出你的应用的状态
+docker-compose pull #拉取服务依赖的镜像
+```
+
+## k8s
+
+是一个开源的容器编排和管理平台,使用k8s可以对容器进行自动化部署、资源调度，扩展/缩减实例数量，负载均衡，快速运维等
+
+使用k8s可以方便的管理docker容器（包括创建、启动、停止、调度、监控、调整容器数量、设置端口映射等操作。）
+
+容器编排：提供了一种声明式的方式来描述应用程序的期望状态，例如定义应用程序的副本数量、资源需求、网络配置等。它们负责将这些声明转化为实际的容器部署和管理操作，包括创建、启动、停止、扩展、监控和自动恢复等。‘简化容器的管理工作，避免人为错误情况。
+
+## k8s核心资源对象
+
+Deployment、Service、Pod是k8s最核心的3个资源对象。
+
+**pod**（容器组）
+
+Pod是Kubernetes中运行容器以及调度的最小单位，同一个Pod可以同时运行多个容器。Pod中的容器共享网络和存储资源，并且它们可以通过本地的localhost进行通信。
+
+**Deployment**
+
+Deployment用于定义应用程序的部署方式。它可以指定要运行的Pod副本数量，并可以自动进行滚动更新和回滚操作。Deployment还可以定义应用程序的更新策略和健康检查。
+
+**Service**
+
+定义了一组Pod的访问方式，用于服务发现和服务访问。其他应用程序可以通过Service来访问后端的Pod实例。当创建一个Service时，Kubernetes会为该Service分配一个唯一的虚拟IP地址和端口号。其他应用程序可以通过该虚拟IP地址和端口号来访问该Service。
+
+K8s的Service主要关注于在Kubernetes集群内部实现服务的发现和负载均衡，而Nacos则更侧重于在分布式系统中实现服务的注册、发现和配置管理。
