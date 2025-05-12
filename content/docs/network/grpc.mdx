@@ -1,0 +1,100 @@
+---
+title: GRPC
+---
+
+## 请问对gRPC有了解吗，说说gRPC
+
+有了解，说gRPC可以先说RPC,PRC：所谓RPC(remote procedure call 远程过程调用)框架实际是提供了一套机制，使得应用程序之间可以进行通信，而且也遵从server/client模型。使用的时候客户端调用server端提供的接口就像是调用本地的函数一样。
+
+所谓gRPC 是由谷歌开发的一个高性能、开源和通用的 RPC 框架，面向移动和 HTTP/2 设计。目前提供 C、Java 和 Go 语言版本，分别是：grpc, grpc-java, grpc-go. 其中 C 版本支持 C, C++, Node.js, Python,Ruby, Objective-C, PHP 和 C# 支持.
+
+## gRPC有几种模式？
+
+四种模式：
+
+1. 简单模式：简单模式只是使用参数和返回值作为服务器与客户端传递数据的方式，最简单。
+2. 客户端流模式：即从客户端往服务器端发送数据使用的是流，即服务器端的参数为流类型，然而在服务器相应后返还数据给客户端，使用的也是流的send方法。一般在服务器端的代码，需要先recv再send，而客户端与此相反。但是在后面的双向模式中可以使用go的协程协作。
+3. 服务器端流模式：即服务器端返回结果的时候使用的是流模式，即传入的数据是通过参数形式传入的。但是在往客户端发送数据时使用send方法，与客户端返回数据的方式大同小异。
+4. 双向模式：客户端如果不适用协程，那么发送必须在接收之前。如果使用协程，发送与接收并没有先后顺序。为了保证协程的同步，可以使用互斥量进行约束。
+
+## 说说如何使用C#实现简单模式gRPC
+
+分为客户端和服务端；
+
+服务端：
+
+1. 通过vs新建一个gRPC服务，会内置一proto文件；内容如下，可以理解成是一个模板，通过这个模板可以生成对应的类文件。
+
+```proto
+syntax = "proto3"; //规范---标准---工具生成C#
+
+option csharp_namespace = "Zhaoxi.gRPCDemo.DefaultServer";
+
+package greet;
+
+// The greeting service definition.
+service Greeter {
+ // Sends a greeting
+ rpc SayHello (HelloRequest) returns (HelloReply);
+}
+
+// The request message containing the user's name.
+message HelloRequest {
+ string name = 1;
+}
+```
+
+2. 需要让这个文件生效，就必须要在项目文件中配置使用这个文件；GrpcServices=“Server”,这是服务端的配置；
+3. 编译，就可以通过这个模板生成一些类，包含这些类的方法；
+
+客户端：
+
+1. Vs新建一个控制台，作为客户端
+
+2. 把服务端的那个proto文件，连同文件一起Copy到客户端来。
+
+3. 配置客户端的项目文件,如下。请注意 GrpcServices=“Client”
+
+   ```csproj
+   <ItemGroup>
+     <Protobuf Include="Protos\greet.proto" GrpcServices="Client" />
+     <Protobuf Include="Protos\CustomMath.proto" GrpcServices="Client" />
+   </ItemGroup>
+   ```
+
+4. 编译后，编写调用gRPC的方法如下：
+
+   ```csharp
+   private static async Task TestHello()
+   {
+           using(var channel = GrpcChannel.ForAddress("https://localhost:5001"))
+           {
+               var client = new Greeter.GreeterClient(channel);
+               var reply = await client.SayHelloAsync(new HelloRequest
+               {
+                   Name = "hello"
+               });
+               Console.WriteLine("Greeter 服务返回数据: " + reply.Message);
+           }
+    }
+   ```
+
+## 说说gRPC的拦截器有哪些？
+
+分为客户端拦截器，和服务端拦截器，是AOP的编程思想的体现。
+
+分别有：
+
+- BlockingUnaryCall：拦截阻塞调用
+- AsyncUnaryCall: 拦截异步调用
+- AsyncServerStreamingCall 拦截异步服务端流调用
+- AsyncClientStreamingCall 拦截异步客户端流调用
+- AsyncDuplexStreamingCall 拦截异步双向流调用
+- UnaryServerHandler 用于拦截和传入普通调用服务器端处理程序
+- ClientStreamingServerHandler 用户拦截客户端流调用的服务端处理程序
+- ServerStreamingServerHandler 用于拦截服务端流调用的服务器端处理程序
+- DuplexStreamingServerHandler 用于拦截双向流调用的服务器端处理程序
+
+## gPRC作为一种被调用的服务，有什么保护安全的措施吗？
+
+有的，可以使用JWT，无论是对称可逆加密还是非对称可逆加密，都是可以支持的；
